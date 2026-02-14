@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Period Tracker</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet">
+
+    <!-- libs -->
+    <script src="https://unpkg.com/dexie@3.2.2/dist/dexie.min.js"></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.20.0/firebase-app-compat.js"></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.20.0/firebase-auth-compat.js"></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/10.20.0/firebase-firestore-compat.js"></script>
+
+    <style>
+      :root {
+  --bg-0: #f7f7fb;
+  --card: #ffffff;
+  --border: #e7e7ee;
+  --text: #2d2d2d;
+  --muted: #6d6d78;
+  --accent1: #8a5cff;
+  --accent2: #ff7abf;
+  --accent3: #36d0a1;
+  --radius: 14px;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: black;
+}
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  Roboto, "Helvetica Neue", Arial;
+   background: linear-gradient(
+    135deg,
+    #641b37,
+    #6b1d3a,
+    #8c2f4f
+  );
+  min-height: 100vh;
+  color: var(--text);
+  padding: 30px;
+  display: flex;
+  justify-content: center;
+  color: white;
+}
+.wrap {
+  width: 100%;
+  max-width: 1150px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 800;
+}
+.title h1 {
+  font-size: 20px;
+}
+.title p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 18px;
+}
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+.card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.06),
+    inset 0 2px 4px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 4px rgba(255, 255, 255, 0.4);
+}
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 140%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(61, 6, 6, 0.4),
+    rgba(237, 232, 232, 0.05)
+  );
+  transform: skewX(-20deg);
+
+  pointer-events: none;   /* 🔥 THIS FIXES EVERYTHING */
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.row {
+  display: flex;
+  gap: 12px;
+}
+.row .col {
+  flex: 1;
+}
+input[type="date"],
+select,
+input[type="number"],
+textarea {
+  width: 100%;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fafafa;
+  font-size: 14px;
+}
+textarea {
+  min-height: 86px;
+}
+.btn {
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(138, 92, 255, 0.12);
+}
+.btn.ghost {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.4);
+}
+.btn.warn {
+  background: #ffecec;
+  color: #7a0000;
+  border: 1px solid #ffd6d6;
+}
+.hint {
+  font-size: 13px;
+  color: black;
+}
+.stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.stat {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fbfbfd;
+}
+.stat strong {
+  font-size: 20px;
+}
+.entries {
+  max-height: 360px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fafafa;
+}
+.entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: white;
+  border: 1px solid var(--border);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.entry:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+}
+.entry-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: white;
+}
+.badge.light {
+  background: linear-gradient(135deg, #ffe8b8, #ffd07a);
+  color: #4b2b00;
+}
+.badge.medium {
+  background: linear-gradient(135deg, #ffd7ef, #fface2);
+  color: #4a1640;
+}
+.badge.heavy {
+  background: linear-gradient(135deg, #ffc7c7, #ff9b9b);
+  color: #4a1616;
+}
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+.notes {
+  font-size: 13px;
+  color: var(--text);
+}
+.entry-right {
+  text-align: right;
+}
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f1f6;
+  font-size: 12px;
+  color: var(--muted);
+}
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* Calendar styles */
+.calendar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cal-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.day {
+  height: 72px;
+  border-radius: 8px;
+  background: transparent;
+  padding: 8px;
+  border: 1px dashed transparent;
+  position: relative;
+  overflow: hidden;
+}
+.day .date {
+  font-weight: 700;
+}
+.day .dot {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.day.has-start {
+  background: linear-gradient(
+    90deg,
+    rgba(138, 92, 255, 0.08),
+    rgba(255, 122, 182, 0.06)
+  );
+  border: 1px solid rgba(138, 92, 255, 0.12);
+}
+.day.predicted {
+  background: linear-gradient(
+    90deg,
+    rgba(54, 208, 161, 0.06),
+    rgba(138, 92, 255, 0.02)
+  );
+  border: 1px solid rgba(54, 208, 161, 0.12);
+}
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+  
+}
+.weekdays div {
+  text-align: center;
+  font-size: 12px;
+  color: black;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.modal-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal {
+  width: 640px;
+  max-width: 96%;
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 20px 60px rgba(16, 24, 40, 0.2);
+}
+.modal h3 {
+  margin-bottom: 8px;
+}
+.modal .row {
+  margin-bottom: 8px;
+}
+.modal .actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.modal .danger {
+  background: #ffecec;
+  color: #7a0000;
+  border: 1px solid #ffd6d6;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.modal .save {
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  color: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+}
+
+/* pain map styles */
+.region-selected {
+  stroke: #8a5cff;
+  stroke-width: 2.5px;
+  fill: rgba(138, 92, 255, 0.14) !important;
+}
+.heat-dot {
+  pointer-events: none;
+}
+#heatmapSvgWrap svg path {
+  stroke: #e0e0e0;
+}
+.region-count {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fafafa;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+}
+
+/* sleep card */
+.sleep-card-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  color: black;
+}
+.sleep-small {
+  font-size: 13px;
+  color: black;
+}
+.sleep-stat {
+  padding: 10px;
+  border-radius: 8px;
+  background: #fbfbfd;
+  border: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+/* toast */
+#toastWrap {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 260px;
+}
+.toast .msg {
+  flex: 1;
+  color: var(--text);
+}
+.toast .btn {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* small transitions */
+.fade {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.scale-in {
+  transform: scale(0.98);
+  opacity: 0;
+}
+.scale-in.show {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* responsive tweaks */
+@media (max-width: 560px) {
+  .day {
+    height: 64px;
+  }
+}
+
+  </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div class="logo">PT</div>
+        <div class="title"><h1 style="color: white;">Period Tracker</h1><p class="hint">Light,
+            pleasant & friendly</p></div>
+
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="form">
+            <div>
+              <label for="start" style="color: white;">Start date</label>
+              <input id="start" type="date" />
+            </div>
+
+            <div class="row">
+              <div class="col">
+                <label for="end" style="color: white;">End date (optional)</label>
+                <input id="end" type="date" />
+              </div>
+              <div style="width:150px">
+                <label for="flow">Flow</label>
+                <select id="flow"><option value>Choose</option><option
+                    value="light">Light</option><option
+                    value="medium">Medium</option><option
+                    value="heavy">Heavy</option></select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col">
+                <label for="cycle" style="color: white;">Cycle length (days)</label>
+                <input id="cycle" type="number" min="18" max="60"
+                  placeholder="28" />
+              </div>
+              <div
+                style="width:120px;display:flex;align-items:flex-end;justify-content:flex-end">
+                <button id="saveBtn" class="btn primary">Save</button>
+              </div>
+            </div>
+
+            <div>
+              <label for="notes" style="color: white;">Notes & symptoms</label>
+              <textarea id="notes"
+                placeholder="e.g. cramps, mood..."></textarea>
+            </div>
+
+            <div class="hint">Entries are stored locally and will sync when you
+              sign in.</div>
+            <div class="controls">
+              <button id="syncNowBtn" class="btn ghost">Sync now</button>
+              <button id="exportBtn" class="btn ghost">Export</button>
+              <button id="importBtn" class="btn ghost">Import</button>
+              <button id="clearLocalBtn" class="btn warn">Clear local</button>
+            </div>
+
+            <!-- PAIN MAP + FOOD RECOMMENDATIONS -->
+            <div id="painFoodArea" style="margin-top:16px" class="card">
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <!-- Body diagram -->
+                <div style="flex:1;min-width:240px">
+                  <div style="font-weight:700;margin-bottom:8px">Pain map (tap
+                    to mark)</div>
+                  <div id="bodyDiagram"
+                    style="position:relative; width:260px; height:420px; margin:auto;">
+                    <svg id="bodySvg" viewBox="0 0 260 420"
+                      style="width:100%;height:100%">
+                      <g id="regions">
+                        <path id="r_lower_left" data-region="lower_left"
+                          d="M90,260 C80,300 88,340 92,360 L120,360 L120,300 C115,280 102,270 90,260 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_lower_right" data-region="lower_right"
+                          d="M170,260 C180,300 172,340 168,360 L140,360 L140,300 C145,280 158,270 170,260 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_upper_center" data-region="upper_center"
+                          d="M105,200 C120,180 140,180 155,200 C150,220 110,220 105,200 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_lower_center" data-region="lower_center"
+                          d="M120,260 C130,270 140,270 150,260 C150,280 130,295 120,260 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_left_thigh" data-region="left_thigh"
+                          d="M110,360 C100,400 92,420 110,420 L120,420 L120,380 C118,370 114,365 110,360 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_right_thigh" data-region="right_thigh"
+                          d="M150,360 C160,400 168,420 150,420 L140,420 L140,380 C142,370 146,365 150,360 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" />
+                        <path id="r_back_low" data-region="back_low"
+                          d="M80,230 C110,260 150,260 180,230 L170,220 C140,250 110,250 80,220 L80,230 Z"
+                          fill="#f2f2f2" stroke="#e0e0e0" opacity="0.0" />
+                      </g>
+                    </svg>
+                  </div>
+                  <div class="hint" style="text-align:center;margin-top:8px">Tap
+                    body areas to mark pain for this entry. Click again to
+                    toggle off.</div>
+                </div>
+
+                <!-- Food suggestions -->
+                <div style="flex:1.1;min-width:260px">
+                  <div
+                    style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-weight:700">Food Suggestions</div>
+                    <div class="muted small">Phase: <span
+                        id="currentPhaseLabel">—</span></div>
+                  </div>
+
+                  <div id="foodList"
+                    style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+
+                  <div
+                    style="margin-top:12px;display:flex;gap:8px;align-items:center">
+                    <button id="saveFoodPref" class="btn ghost">Save
+                      preferences</button>
+                    <button id="resetFoodPref" class="btn ghost">Reset</button>
+                  </div>
+
+                  <div class="hint" style="margin-top:8px">Tell the app which
+                    foods you dislike — suggestions will adapt.</div>
+                </div>
+              </div>
+
+              <hr
+                style="margin-top:12px;border:none;border-top:1px solid var(--border)" />
+
+              <div
+                style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+                <div><button id="openHeatmapBtn" class="btn ghost">Open
+                    Heatmap</button></div>
+                <div class="muted small">Heatmap shows where pain is
+                  concentrated across saved entries</div>
+              </div>
+            </div>
+
+            <!-- Heatmap modal -->
+            <div id="heatmapModalBackdrop" class="modal-backdrop"
+              aria-hidden="true">
+              <div class="modal fade scale-in" id="heatmapModal" role="dialog"
+                aria-modal="true">
+                <h3>Pain Heatmap</h3>
+                <div style="display:flex;gap:12px">
+                  <div style="flex:1">
+                    <div id="heatmapSvgWrap"
+                      style="width:260px;height:420px;margin:auto"></div>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-weight:700">Region counts</div>
+                    <div id="regionCounts" style="margin-top:8px"></div>
+                    <div style="margin-top:12px" class="hint">Hover/tap regions
+                      to see counts. Use this to discuss with a clinician.</div>
+                  </div>
+                </div>
+                <div class="actions" style="margin-top:12px">
+                  <button id="closeHeatmapBtn" class="btn ghost">Close</button>
+                </div>
+              </div>
+            </div>
+            <!-- END PAIN & FOOD -->
+
+            <!-- Sleep logging UI -->
+            <div id="sleepArea" style="margin-top:16px" class="card">
+              <div
+                style="display:flex;justify-content:space-between;align-items:center">
+                <div style="font-weight:700">Sleep tracker</div>
+                <div class="sleep-small">Log sleep to analyze vs cycle</div>
+              </div>
+
+              <div class="sleep-card-row">
+                <div style="flex:1">
+                  <label>Sleep date</label>
+                  <input id="sleepDate" type="date" />
+                </div>
+                <div style="width:120px">
+                  <label style="color: black;">Duration (hrs)</label>
+                  <input id="sleepDuration" type="number" min="0" max="24"
+                    step="0.25" placeholder="7.5" />
+                </div>
+                <div style="width:120px">
+                  <label style="color: black;">Quality (1-5)</label>
+                  <input id="sleepQuality" type="number" min="1" max="5"
+                    step="1" placeholder="4" />
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button id="saveSleepBtn" class="btn primary">Save
+                  sleep</button>
+                <button id="openSleepLogBtn" class="btn ghost">Open Sleep
+                  Log</button>
+                <div style="margin-left:auto" class="sleep-stat"
+                  id="sleepSummaryCard">No sleep data yet</div>
+              </div>
+
+              <div class="hint" style="margin-top:8px">Optional: log duration &
+                a simple quality score. The app compares your sleep across cycle
+                phases.</div>
+            </div>
+            <!-- END Sleep -->
+
+          </div>
+
+          <!-- Calendar -->
+          <div style="margin-top:16px" class="calendar-card card">
+            <div class="calendar-header">
+              <div style="font-weight:700">Calendar</div>
+              <div class="cal-nav">
+                <button id="prevMonth" class="btn ghost">◀</button>
+                <div id="calendarMonth"
+                  style="min-width:160px;text-align:center;font-weight:600"></div>
+                <button id="nextMonth" class="btn ghost">▶</button>
+              </div>
+            </div>
+            <div class="weekdays" aria-hidden="true">
+              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div id="calendar" class="cal-grid"></div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="stats card">
+            <div class="stat"><strong id="avgCycle">—</strong><div
+                class="label">Average cycle</div></div>
+            <div class="stat"><strong id="nextDue">—</strong><div
+                class="label">Next predicted start</div></div>
+          </div>
+
+          <div class="card">
+            <div
+              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <h3 style="margin:0">Entries <span id="countPill"
+                  class="pill">0</span></h3>
+            </div>
+            <div id="entriesList" class="entries"></div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div
+              style="display:flex;justify-content:space-between;align-items:center">
+              <h3 style="margin:0">Sleep analysis</h3>
+              <button id="computeSleepAnalysis"
+                class="btn ghost">Recompute</button>
+            </div>
+            <div id="sleepAnalysis" style="margin-top:10px">
+              <!-- summary message inserted by JS -->
+              <div id="sleepAnalysisMsg" class="hint">No analysis yet</div>
+            </div>
+          </div>
+
+        </aside>
+      </div>
+    </div>
+
+    <!-- Edit/Delete Modal (period entry) -->
+    <div id="editModalBackdrop" class="modal-backdrop" aria-hidden="true">
+      <div class="modal fade scale-in" id="editModal" role="dialog"
+        aria-modal="true">
+        <h3 id="modalTitle">Edit entry</h3>
+        <div class="row">
+          <div style="flex:1"><label>Start</label><input id="editStart"
+              type="date" /></div>
+          <div style="width:140px"><label>End</label><input id="editEnd"
+              type="date" /></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div style="flex:1"><label style="color: white;">Flow</label><select id="editFlow"><option
+                value>Choose</option><option value="light">Light</option><option
+                value="medium">Medium</option><option
+                value="heavy">Heavy</option></select></div>
+          <div style="width:120px"><label>Cycle</label><input id="editCycle"
+              type="number" min="18" max="60" /></div>
+        </div>
+        <div style="margin-top:8px"><label>Notes</label><textarea
+            id="editNotes"></textarea></div>
+        <div class="actions"
+          style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <button id="editDeleteBtn" class="danger">Delete</button>
+          <div style="display:flex;gap:8px">
+            <button id="editCancelBtn" class="btn ghost">Cancel</button>
+            <button id="editSaveBtn" class="save">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sleep Log Modal -->
+    <div id="sleepLogBackdrop" class="modal-backdrop" aria-hidden="true">
+      <div class="modal fade scale-in" id="sleepLogModal" role="dialog"
+        aria-modal="true">
+        <h3>Sleep Log</h3>
+        <div id="sleepLogList"
+          style="max-height:320px;overflow:auto;margin-top:8px"></div>
+        <div class="actions" style="margin-top:12px">
+          <button id="closeSleepLogBtn" class="btn ghost">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heatmap modal already defined earlier -->
+
+    <!-- Toast container -->
+    <div id="toastWrap"></div>
+
+    <script>
+/* =============================
+   App with Sleep feature
+   ============================= */
+
+/* Local state */
+let entries = [];
+let editTargetId = null;
+let currentUser = null;
+let serverUnsubPeriods = null;
+let serverUnsubSleep = null;
+const DELETE_GRACE_MS = 6000;
+
+/* Dexie DB with sleep store */
+const dexie = new Dexie('pt_combined_db_v1');
+dexie.version(1).stores({
+  periods: '++id, tmpId, startDate, endDate, flow, cycle, notes, painMap, createdAt, serverId, synced',
+  sleep:   '++id, date, duration, quality, notes, createdAt, serverId, synced'
+});
+
+function dbRowToEntry(row){
+  return {
+    id: row.serverId || row.tmpId || ('local-'+row.id),
+    _dbId: row.id,
+    tmpId: row.tmpId,
+    serverId: row.serverId,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    flow: row.flow,
+    cycle: row.cycle,
+    notes: row.notes,
+    painMap: row.painMap || [],
+    createdAt: row.createdAt,
+    synced: !!row.synced
+  };
+}
+function dbRowToSleep(row){
+  return {
+    id: row.serverId || ('local-sleep-'+row.id),
+    _dbId: row.id,
+    date: row.date,
+    duration: row.duration,
+    quality: row.quality,
+    notes: row.notes || '',
+    createdAt: row.createdAt,
+    synced: !!row.synced
+  };
+}
+
+/* Toast helper */
+const toastWrap = document.getElementById('toastWrap');
+function showToast(msg, opts={}){
+  const el = document.createElement('div'); el.className='toast';
+  el.innerHTML = `<div class="msg">${msg}</div>`;
+  if(opts.actionText && opts.onAction){
+    const btn = document.createElement('button'); btn.className='btn'; btn.textContent = opts.actionText;
+    btn.onclick = ()=> { opts.onAction(); el.remove(); };
+    el.appendChild(btn);
+  }
+  toastWrap.appendChild(el);
+  setTimeout(()=> el.remove(), 8000);
+}
+
+/* Pain map & food functions (same as before) */
+const PAIN_REGIONS = ['lower_left','lower_right','lower_center','upper_center','left_thigh','right_thigh','back_low'];
+let currentPainSelection = new Set();
+function initPainMapUI(){
+  const svg = document.getElementById('bodySvg'); if(!svg) return;
+  PAIN_REGIONS.forEach(r=>{
+    const el = document.querySelector(`#regions [data-region="${r}"]`);
+    if(!el) return;
+    el.style.cursor='pointer';
+    el.addEventListener('click',(ev)=>{ ev.stopPropagation(); toggleRegionSelection(r, el); });
+  });
+}
+function toggleRegionSelection(region, el){
+  if(currentPainSelection.has(region)){ currentPainSelection.delete(region); el.classList.remove('region-selected'); }
+  else { currentPainSelection.add(region); el.classList.add('region-selected'); }
+}
+function setPainSelectionFromEntry(entry){
+  currentPainSelection.clear();
+  PAIN_REGIONS.forEach(r=>{ const el=document.querySelector(`#regions [data-region="${r}"]`); if(el) el.classList.remove('region-selected'); });
+  if(!entry || !entry.painMap) return;
+  entry.painMap.forEach(r=>{ const el=document.querySelector(`#regions [data-region="${r}"]`); if(el){ el.classList.add('region-selected'); currentPainSelection.add(r); } });
+}
+function getSelectedPainRegions(){ return Array.from(currentPainSelection); }
+
+/* Food engine (kept as before) */
+const FOOD_MAP = {
+  menstrual: [{name:'Iron-rich spinach salad', note:'Iron + vitamin C helps energy', recipe:'Spinach, orange segments, seeds'}, {name:'Warm lentil soup', note:'Gentle protein & iron', recipe:'Lentils, carrots, turmeric'}],
+  follicular:[{name:'Greek yogurt + berries', note:'Protein + antioxidants', recipe:'Yogurt, berries, nuts'}, {name:'Quinoa salad', note:'Complex carbs for energy', recipe:'Quinoa, veggies, lemon'}],
+  ovulation:[{name:'Grilled salmon', note:'Omega-3 for mood & inflammation', recipe:'Salmon, herbs, lemon'}, {name:'Avocado & egg toast', note:'Healthy fats & protein', recipe:'Sourdough, avocado, egg'}],
+  luteal:[{name:'Banana + almond butter', note:'Magnesium & potassium', recipe:'Banana, almond butter'}, {name:'Dark chocolate + nuts', note:'Craving-safe treat', recipe:'70% chocolate, almonds'}]
+};
+function getPhaseForDate(entryStartIso, cycleDays, targetDateIso){
+  const cycle = Number(cycleDays) || 28;
+  const start = new Date(entryStartIso);
+  const target = targetDateIso ? new Date(targetDateIso) : new Date();
+  const diffDays = Math.floor((target - start)/(1000*60*60*24));
+  const dayInCycle = ((diffDays % cycle) + cycle) % cycle;
+  if(dayInCycle < 5) return 'menstrual';
+  const ovulationDay = Math.max(12, Math.round(cycle/2)-1);
+  if(dayInCycle >= ovulationDay && dayInCycle <= ovulationDay+2) return 'ovulation';
+  if(dayInCycle < ovulationDay) return 'follicular';
+  return 'luteal';
+}
+function getUserFoodPrefs(){ try{ return JSON.parse(localStorage.getItem('pt_food_prefs')||'[]'); }catch(e){ return []; } }
+function saveUserFoodPrefs(prefs){ localStorage.setItem('pt_food_prefs', JSON.stringify(prefs||[])); if(currentUser){ firestore.collection('users').doc(currentUser.uid).set({ prefs }, { merge:true }).catch(()=>{}); } }
+function renderFoodSuggestionsForEntry(entry){
+  const foodWrap = document.getElementById('foodList');
+  const phaseLabelEl = document.getElementById('currentPhaseLabel');
+  foodWrap.innerHTML=''; const prefs = getUserFoodPrefs();
+  let sampleEntry = entry || (entries && entries.length>0 ? entries[0] : null);
+  const cycle = sampleEntry ? sampleEntry.cycle : 28;
+  const entryStart = sampleEntry ? sampleEntry.startDate : (new Date()).toISOString().slice(0,10);
+  const phase = getPhaseForDate(entryStart, cycle, new Date().toISOString().slice(0,10));
+  if(phaseLabelEl) phaseLabelEl.textContent = phase;
+  const candidates = FOOD_MAP[phase] || [];
+  const filtered = candidates.filter(f => !prefs.includes(f.name));
+  filtered.forEach(f=>{
+    const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center';
+    const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700">${f.name}</div><div class="muted small">${f.note}</div><div class="hint" style="margin-top:6px">${f.recipe}</div>`;
+    const right = document.createElement('div'); const dislike = document.createElement('button'); dislike.className='btn ghost'; dislike.textContent='I dislike';
+    dislike.onclick = ()=>{ const p=getUserFoodPrefs(); if(!p.includes(f.name)) p.push(f.name); saveUserFoodPrefs(p); renderFoodSuggestionsForEntry(sampleEntry); };
+    right.appendChild(dislike); row.appendChild(left); row.appendChild(right); foodWrap.appendChild(row);
+  });
+  if(filtered.length===0){ const el=document.createElement('div'); el.className='muted'; el.textContent='No suggestions — update preferences or cycle info.'; foodWrap.appendChild(el); }
+}
+document.getElementById('saveFoodPref')?.addEventListener('click', ()=>{ alert('Preferences saved.') });
+document.getElementById('resetFoodPref')?.addEventListener('click', ()=>{ if(confirm('Reset your food preferences?')){ saveUserFoodPrefs([]); renderFoodSuggestionsForEntry(null); } });
+
+/* Heatmap */
+document.getElementById('openHeatmapBtn')?.addEventListener('click', ()=>{ renderHeatmapModal(); const b=document.getElementById('heatmapModalBackdrop'); const m=document.getElementById('heatmapModal'); if(b&&m){ b.classList.add('show'); m.classList.add('show'); }});
+document.getElementById('closeHeatmapBtn')?.addEventListener('click', ()=>{ const b=document.getElementById('heatmapModalBackdrop'); const m=document.getElementById('heatmapModal'); if(b&&m){ b.classList.remove('show'); m.classList.remove('show'); }});
+async function computeRegionCounts(){
+  const rows = await dexie.periods.toArray();
+  const counts = {}; PAIN_REGIONS.forEach(r=>counts[r]=0);
+  rows.forEach(r=>{ const pm = r.painMap || []; pm.forEach(region=>{ if(counts[region]!==undefined) counts[region]+=1; }); });
+  return counts;
+}
+async function renderHeatmapModal(){
+  const wrap = document.getElementById('heatmapSvgWrap'); const counts = await computeRegionCounts(); wrap.innerHTML='';
+  const cloneSvg = document.getElementById('bodySvg').cloneNode(true); cloneSvg.id='heatmapSvg'; cloneSvg.style.width='100%'; cloneSvg.style.height='100%';
+  const maxCount = Math.max(...Object.values(counts),1);
+  Object.keys(counts).forEach(region=>{ const c=counts[region]; if(c<=0) return; const path=cloneSvg.querySelector(`[data-region="${region}"]`); if(!path) return; const bbox=path.getBBox(); const cx=bbox.x+bbox.width/2; const cy=bbox.y+bbox.height/2; const circle=document.createElementNS('http://www.w3.org/2000/svg','circle'); const r=8+(c/maxCount)*24; circle.setAttribute('cx',cx); circle.setAttribute('cy',cy); circle.setAttribute('r',r); circle.setAttribute('fill','rgba(255,90,120,0.14)'); circle.setAttribute('stroke','rgba(255,90,120,0.5)'); circle.setAttribute('class','heat-dot'); cloneSvg.appendChild(circle); });
+  wrap.appendChild(cloneSvg);
+  const rcWrap = document.getElementById('regionCounts'); rcWrap.innerHTML=''; Object.keys(counts).forEach(r=>{ const row=document.createElement('div'); row.className='region-count'; row.innerHTML=`<div style="text-transform:capitalize">${r.replace('_',' ')}</div><div class="muted">${counts[r]}</div>`; rcWrap.appendChild(row); });
+}
+
+/* ---------- Sleep: add & analysis ---------- */
+async function addSleepEntry(payload){
+  const createdAt = new Date().toISOString();
+  const row = Object.assign({ createdAt, synced:false }, payload);
+  const id = await dexie.sleep.add(row);
+  await loadEntriesFromDB(); // reload everything for UI consistency
+  if(currentUser && navigator.onLine) await syncUnsyncedSleepToServer(currentUser.uid);
+  return id;
+}
+document.getElementById('saveSleepBtn').addEventListener('click', async ()=>{
+  const date = document.getElementById('sleepDate').value;
+  const duration = parseFloat(document.getElementById('sleepDuration').value || 0);
+  const quality = parseInt(document.getElementById('sleepQuality').value || 0);
+  if(!date || !duration || !quality) return alert('Provide date, duration (hrs) and quality (1-5).');
+  await addSleepEntry({ date, duration, quality });
+  document.getElementById('sleepDate').value=''; document.getElementById('sleepDuration').value=''; document.getElementById('sleepQuality').value='';
+  showToast('Sleep saved');
+  computeAndRenderSleepAnalysis();
+});
+document.getElementById('openSleepLogBtn').addEventListener('click', async ()=>{ await renderSleepLogModal(); const b=document.getElementById('sleepLogBackdrop'); const m=document.getElementById('sleepLogModal'); if(b&&m){ b.classList.add('show'); m.classList.add('show'); }});
+document.getElementById('closeSleepLogBtn').addEventListener('click', ()=>{ const b=document.getElementById('sleepLogBackdrop'); const m=document.getElementById('sleepLogModal'); if(b&&m){ b.classList.remove('show'); m.classList.remove('show'); }});
+async function renderSleepLogModal(){
+  const wrap = document.getElementById('sleepLogList'); wrap.innerHTML='';
+  const rows = await dexie.sleep.orderBy('date').reverse().toArray();
+  if(!rows || rows.length===0){ wrap.innerHTML='<div style="color:var(--muted);padding:12px">No sleep entries yet.</div>'; return; }
+  for(const r of rows){
+    const s = dbRowToSleep(r);
+    const rowEl = document.createElement('div'); rowEl.style.display='flex'; rowEl.style.justifyContent='space-between'; rowEl.style.alignItems='center'; rowEl.style.padding='8px'; rowEl.style.borderBottom='1px solid var(--border)';
+    rowEl.innerHTML = `<div><div style="font-weight:700">${s.date}</div><div class="muted small">Duration: ${s.duration} hr · Quality: ${s.quality}</div></div>`;
+    const right = document.createElement('div');
+    const delBtn = document.createElement('button'); delBtn.className='btn ghost'; delBtn.textContent='Delete';
+    delBtn.onclick = async ()=>{
+      await dexie.sleep.delete(s._dbId);
+      await renderSleepLogModal();
+      await computeAndRenderSleepAnalysis();
+      showToast('Sleep entry deleted');
+    };
+    right.appendChild(delBtn);
+    rowEl.appendChild(right);
+    wrap.appendChild(rowEl);
+  }
+}
+
+/* Compute sleep analysis vs cycle phases */
+async function computeAndRenderSleepAnalysis(){
+  // load sleep rows and periods
+  const sleepRows = await dexie.sleep.toArray();
+  const periodRows = await dexie.periods.orderBy('startDate').toArray(); // old -> new
+  const periodEntries = periodRows.map(r => dbRowToEntry(r));
+  // build function to find the most recent period start before given date (fallback use nearest)
+  function findRelevantPeriodFor(dateIso){
+    const t = new Date(dateIso);
+    // find latest start <= date
+    let candidate = null;
+    for(const p of periodEntries){
+      const sDate = new Date(p.startDate);
+      if(sDate <= t){ if(!candidate || new Date(candidate.startDate) < sDate) candidate = p; }
+    }
+    // if none found, use most recent period overall
+    if(!candidate && periodEntries.length>0) candidate = periodEntries[periodEntries.length-1];
+    return candidate;
+  }
+  // aggregate per phase
+  const agg = { menstrual:{count:0, dur:0, q:0}, follicular:{count:0, dur:0, q:0}, ovulation:{count:0, dur:0, q:0}, luteal:{count:0, dur:0, q:0} };
+  for(const s of sleepRows){
+    const p = findRelevantPeriodFor(s.date);
+    if(!p) continue;
+    const phase = getPhaseForDate(p.startDate, p.cycle || 28, s.date);
+    agg[phase].count += 1;
+    agg[phase].dur += Number(s.duration || 0);
+    agg[phase].q += Number(s.quality || 0);
+  }
+  // compute averages
+  const averages = {};
+  Object.keys(agg).forEach(k=>{
+    if(agg[k].count>0){ averages[k] = { avgDur: agg[k].dur/agg[k].count, avgQuality: agg[k].q/agg[k].count, count: agg[k].count }; }
+    else { averages[k] = { avgDur: 0, avgQuality: 0, count: 0 }; }
+  });
+  // compute overall avgQuality (only phases with data)
+  let totalQ=0, totalN=0;
+  Object.keys(averages).forEach(k=>{ if(averages[k].count>0){ totalQ += averages[k].avgQuality * averages[k].count; totalN += averages[k].count; }});
+  const overallAvgQ = totalN>0 ? (totalQ/totalN) : 0;
+  const lutealQ = averages.luteal.count>0 ? averages.luteal.avgQuality : null;
+  let analysisMsg = 'Not enough sleep data to analyze.';
+  if(overallAvgQ>0 && lutealQ !== null){
+    // percent worse: (overall - luteal)/overall *100, negative means better
+    const diff = overallAvgQ - lutealQ;
+    const perc = Math.round((diff / overallAvgQ) * 100);
+    if(perc > 0) analysisMsg = `You sleep ${perc}% worse during the luteal phase (avg quality ${lutealQ.toFixed(2)} vs overall ${overallAvgQ.toFixed(2)}).`;
+    else if(perc < 0) analysisMsg = `You sleep ${Math.abs(perc)}% better during the luteal phase (avg quality ${lutealQ.toFixed(2)} vs overall ${overallAvgQ.toFixed(2)}).`;
+    else analysisMsg = `Sleep quality during luteal is similar to your overall average (${overallAvgQ.toFixed(2)}).`;
+  } else if(totalN > 0){
+    analysisMsg = `Not enough luteal-phase sleep entries to compare (have data from other phases).`;
+  }
+  // Also show small stats in sleepSummaryCard
+  const sleepSummaryCard = document.getElementById('sleepSummaryCard');
+  const totalSleepRecords = await dexie.sleep.count();
+  sleepSummaryCard.textContent = `${totalSleepRecords} entries · ${overallAvgQ>0 ? 'avg quality '+overallAvgQ.toFixed(2):'no avg yet'}`;
+  // render in aside
+  document.getElementById('sleepAnalysisMsg').textContent = analysisMsg;
+}
+
+/* ---------- Persistence: periods (existing) ---------- */
+
+async function addEntryToUI(entryPayload){
+  if(!entryPayload.painMap) entryPayload.painMap = getSelectedPainRegions();
+  const tmpId = 't' + Date.now() + Math.floor(Math.random()*10000);
+  const createdAt = new Date().toISOString();
+  const dbRow = Object.assign({ tmpId, createdAt, synced:false }, entryPayload);
+  const id = await dexie.periods.add(dbRow);
+  const saved = await dexie.periods.get(id);
+  entries.unshift(dbRowToEntry(saved));
+  renderEntries();
+  renderCalendar(currentYear, currentMonth);
+  if(currentUser && navigator.onLine) await syncUnsyncedToServer(currentUser.uid);
+  return saved;
+}
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const start = document.getElementById('start').value;
+  if(!start) return alert('Pick a start date');
+  const obj = {
+    startDate: start,
+    endDate: document.getElementById('end').value || null,
+    flow: document.getElementById('flow').value || null,
+    cycle: document.getElementById('cycle').value || null,
+    notes: document.getElementById('notes').value || '',
+    painMap: getSelectedPainRegions()
+  };
+  await addEntryToUI(obj);
+  // clear
+  document.getElementById('start').value=''; document.getElementById('end').value=''; document.getElementById('flow').value=''; document.getElementById('cycle').value=''; document.getElementById('notes').value='';
+  PAIN_REGIONS.forEach(r=>{ const el=document.querySelector(`#regions [data-region="${r}"]`); if(el) el.classList.remove('region-selected'); });
+  currentPainSelection.clear();
+  renderFoodSuggestionsForEntry(null);
+});
+
+/* Render entries */
+function renderEntries(){
+  const list = document.getElementById('entriesList'); list.innerHTML='';
+  if(entries.length===0){ list.innerHTML='<div style="text-align:center;color:var(--muted);padding:28px">No entries yet — add one above.</div>'; document.getElementById('countPill').textContent=0; return; }
+  entries.forEach(e=>{
+    const div=document.createElement('div'); div.className='entry';
+    const left=document.createElement('div'); left.className='entry-left';
+    const badge=document.createElement('div'); badge.className='badge '+(e.flow||'medium'); badge.textContent = e.startDate.split('-').slice(1).join('/');
+    const meta=document.createElement('div'); meta.innerHTML = `<div style="font-weight:700">${e.startDate}</div><div class='meta'>${e.flow||''} · cycle ${e.cycle||'—'}d</div><div class='notes'>${e.notes||''}</div>`;
+    left.appendChild(badge); left.appendChild(meta);
+    const right=document.createElement('div'); right.className='entry-right'; right.innerHTML = `<div class='pill'>${e.synced? 'synced' : 'local'}</div>`;
+    div.appendChild(left); div.appendChild(right);
+    div.addEventListener('click', ()=> openEditModal(e.id));
+    list.appendChild(div);
+  });
+  document.getElementById('countPill').textContent = entries.length;
+}
+
+/* Calendar */
+const calendarEl = document.getElementById('calendar'); const monthLabel = document.getElementById('calendarMonth');
+let today = new Date(); let currentYear = today.getFullYear(); let currentMonth = today.getMonth();
+function renderCalendar(year, month){
+  monthLabel.textContent = new Date(year, month).toLocaleString(undefined, {month:'long', year:'numeric'});
+  calendarEl.innerHTML='';
+  const first = new Date(year, month, 1); const startDay = first.getDay(); const daysInMonth = new Date(year, month+1, 0).getDate();
+  for(let i=0;i<startDay;i++){ const d=document.createElement('div'); d.className='day'; calendarEl.appendChild(d); }
+  const starts = new Set(entries.map(e=>e.startDate)); const predicted=new Set();
+  if(entries.length>0){ const lastCycle = entries[0].cycle || 28; let base = new Date(entries[0].startDate); for(let i=0;i<6;i++){ base.setDate(base.getDate()+Number(lastCycle)); const iso=base.toISOString().slice(0,10); predicted.add(iso); } }
+  for(let d=1; d<=daysInMonth; d++){
+    const date=new Date(year, month, d); const iso=date.toISOString().slice(0,10);
+    const day=document.createElement('div'); day.className='day'; const dateEl=document.createElement('div'); dateEl.className='date'; dateEl.textContent=d; day.appendChild(dateEl);
+    if(starts.has(iso)){ day.classList.add('has-start'); const dot=document.createElement('div'); dot.className='dot'; dot.style.background='linear-gradient(90deg,var(--accent1),var(--accent2))'; day.appendChild(dot); }
+    else if(predicted.has(iso)){ day.classList.add('predicted'); }
+    calendarEl.appendChild(day);
+  }
+}
+document.getElementById('prevMonth').addEventListener('click', ()=>{ currentMonth--; if(currentMonth<0){ currentYear--; currentMonth=11 } renderCalendar(currentYear, currentMonth); });
+document.getElementById('nextMonth').addEventListener('click', ()=>{ currentMonth++; if(currentMonth>11){ currentYear++; currentMonth=0 } renderCalendar(currentYear, currentMonth); });
+
+/* Edit modal */
+const backdrop = document.getElementById('editModalBackdrop'); const modal = document.getElementById('editModal');
+function fillModalWithEntry(e){
+  document.getElementById('editStart').value = e.startDate || ''; document.getElementById('editEnd').value = e.endDate || ''; document.getElementById('editFlow').value = e.flow || ''; document.getElementById('editCycle').value = e.cycle || ''; document.getElementById('editNotes').value = e.notes || '';
+}
+function openEditModal(id){
+  editTargetId = id;
+  const e = entries.find(x=>x.id===id);
+  if(!e){
+    (async()=>{
+      let row = await dexie.periods.where('serverId').equals(id).first();
+      if(!row) row = await dexie.periods.where('tmpId').equals(id).first();
+      if(!row && id.startsWith('local-')){ const dbid = Number(id.split('-')[1]); row = await dexie.periods.get(dbid); }
+      if(row){ const entry = dbRowToEntry(row); fillModalWithEntry(entry); setPainSelectionFromEntry(entry); renderFoodSuggestionsForEntry(entry); backdrop.classList.add('show'); modal.classList.add('show'); }
+    })();
+    return;
+  }
+  fillModalWithEntry(e); setPainSelectionFromEntry(e); renderFoodSuggestionsForEntry(e); backdrop.classList.add('show'); modal.classList.add('show');
+}
+function closeEditModal(){ backdrop.classList.remove('show'); modal.classList.remove('show'); editTargetId=null; }
+document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+document.getElementById('editModalBackdrop').addEventListener('click', (ev)=>{ if(ev.target.id==='editModalBackdrop') closeEditModal(); });
+
+/* Modal Save & Delete (period) */
+document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
+  if(!editTargetId) return;
+  const payload = {
+    startDate: document.getElementById('editStart').value,
+    endDate: document.getElementById('editEnd').value || null,
+    flow: document.getElementById('editFlow').value || null,
+    cycle: document.getElementById('editCycle').value || null,
+    notes: document.getElementById('editNotes').value || '',
+    painMap: getSelectedPainRegions()
+  };
+  let row = await dexie.periods.where('serverId').equals(editTargetId).first();
+  if(!row) row = await dexie.periods.where('tmpId').equals(editTargetId).first();
+  if(!row && editTargetId.startsWith('local-')){ const dbid = Number(editTargetId.split('-')[1]); row = await dexie.periods.get(dbid); }
+  if(!row){ alert('Could not find the entry to edit'); return; }
+  await dexie.periods.update(row.id, Object.assign({}, payload, { synced:false }));
+  await loadEntriesFromDB();
+  if(currentUser && navigator.onLine) await syncUnsyncedToServer(currentUser.uid);
+  closeEditModal();
+});
+document.getElementById('editDeleteBtn').addEventListener('click', async ()=>{
+  if(!editTargetId) return;
+  let row = await dexie.periods.where('serverId').equals(editTargetId).first();
+  if(!row) row = await dexie.periods.where('tmpId').equals(editTargetId).first();
+  if(!row && editTargetId.startsWith('local-')){ const dbid = Number(editTargetId.split('-')[1]); row = await dexie.periods.get(dbid); }
+  if(!row){ alert('Entry not found'); return; }
+  await dexie.periods.delete(row.id);
+  await loadEntriesFromDB();
+  closeEditModal();
+  showToast('Entry deleted');
+  if(currentUser && navigator.onLine) await syncUnsyncedToServer(currentUser.uid);
+});
+
+/* ---------- Load from DB ---------- */
+async function loadEntriesFromDB(){
+  const rows = await dexie.periods.orderBy('createdAt').reverse().toArray();
+  entries = rows.map(dbRowToEntry);
+  renderEntries();
+  renderCalendar(currentYear, currentMonth);
+  initPainMapUI();
+  renderFoodSuggestionsForEntry(null);
+  computeAndRenderSleepAnalysis();
+}
+loadEntriesFromDB();
+
+/* ---------- Firebase init ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyABF_wJe9RvgcFbXQ3CfeWZteHbvmLxMIM",
+  authDomain: "my-tracker-ed52b.firebaseapp.com",
+  projectId: "my-tracker-ed52b",
+  storageBucket: "my-tracker-ed52b.appspot.com",
+  messagingSenderId: "1037891920500",
+  appId: "1:1037891920500:web:c0f8918a72997a37e3e721",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const firestore = firebase.firestore();
+
+/* ---------- Auth UI ---------- */
+const authArea = document.getElementById('authArea');
+const statusChip = document.getElementById('status');
+function renderAuthUI(user){
+  authArea.innerHTML='';
+  if(user){
+    currentUser = user;
+    const span = document.createElement('span'); span.textContent = user.email; span.style.color='#666'; span.style.marginRight='8px';
+    const outBtn = document.createElement('button'); outBtn.textContent='Sign out'; outBtn.className='btn ghost';
+    outBtn.onclick = ()=> auth.signOut();
+    authArea.appendChild(span); authArea.appendChild(outBtn);
+    statusChip.textContent = 'Signed in';
+  } else {
+    currentUser = null;
+    const email = document.createElement('input'); email.placeholder='Email'; email.type='email'; email.style.padding='6px'; email.style.marginRight='6px';
+    const pass = document.createElement('input'); pass.placeholder='Password'; pass.type='password'; pass.style.padding='6px'; pass.style.marginRight='6px';
+    const login = document.createElement('button'); login.textContent='Log in'; login.className='btn ghost';
+    const signup = document.createElement('button'); signup.textContent='Sign up'; signup.className='btn primary';
+    login.onclick = async ()=>{ try{ await auth.signInWithEmailAndPassword(email.value, pass.value); }catch(e){ alert('Login failed: '+e.message); } };
+    signup.onclick = async ()=>{ try{ await auth.createUserWithEmailAndPassword(email.value, pass.value); }catch(e){ alert('Signup failed: '+e.message); } };
+    authArea.appendChild(email); authArea.appendChild(pass); authArea.appendChild(login); authArea.appendChild(signup);
+    statusChip.textContent = 'Local (not signed in)';
+  }
+}
+auth.onAuthStateChanged(async (user)=>{
+  renderAuthUI(user);
+  currentUser = user;
+  if(user){
+    // get prefs
+    try{
+      const prefsSnap = await firestore.collection('users').doc(user.uid).get();
+      if(prefsSnap && prefsSnap.exists){ const d=prefsSnap.data(); if(d && d.prefs) saveUserFoodPrefs(d.prefs); }
+    }catch(e){ console.warn('prefs fetch', e); }
+    // sync local => server
+    await syncUnsyncedToServer(user.uid);
+    await syncUnsyncedSleepToServer(user.uid);
+    // start listeners
+    startServerListeners(user.uid);
+  } else {
+    // stop listeners
+    if(serverUnsubPeriods){ serverUnsubPeriods(); serverUnsubPeriods=null; }
+    if(serverUnsubSleep){ serverUnsubSleep(); serverUnsubSleep=null; }
+  }
+});
+
+/* ---------- Sync periods ---------- */
+async function syncUnsyncedToServer(uid){
+  if(!uid) return;
+  const unsynced = await dexie.periods.where('synced').equals(false).toArray();
+  for(const r of unsynced){
+    const payload = {
+      startDate: r.startDate,
+      endDate: r.endDate || null,
+      flow: r.flow || null,
+      cycle: r.cycle || null,
+      notes: r.notes || '',
+      painMap: r.painMap || [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(r.serverId){
+      try{ await firestore.collection('users').doc(uid).collection('periods').doc(r.serverId).set(payload, { merge:true }); await dexie.periods.update(r.id, { synced:true }); }
+      catch(e){ console.warn('period update failed', e); }
+    } else {
+      try{ const docRef = await firestore.collection('users').doc(uid).collection('periods').add(payload); await dexie.periods.update(r.id, { serverId: docRef.id, synced:true }); }
+      catch(e){ console.warn('period create failed', e); }
+    }
+  }
+}
+
+/* ---------- Sync sleep ---------- */
+async function syncUnsyncedSleepToServer(uid){
+  if(!uid) return;
+  const unsynced = await dexie.sleep.where('synced').equals(false).toArray();
+  for(const r of unsynced){
+    const payload = {
+      date: r.date,
+      duration: r.duration,
+      quality: r.quality,
+      notes: r.notes || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(r.serverId){
+      try{ await firestore.collection('users').doc(uid).collection('sleep').doc(r.serverId).set(payload, { merge:true }); await dexie.sleep.update(r.id, { synced:true }); }
+      catch(e){ console.warn('sleep update failed', e); }
+    } else {
+      try{ const docRef = await firestore.collection('users').doc(uid).collection('sleep').add(payload); await dexie.sleep.update(r.id, { serverId: docRef.id, synced:true }); }
+      catch(e){ console.warn('sleep create failed', e); }
+    }
+  }
+}
+
+/* ---------- Server listeners for two collections ---------- */
+function startServerListeners(uid){
+  if(serverUnsubPeriods){ serverUnsubPeriods(); serverUnsubPeriods=null; }
+  serverUnsubPeriods = firestore.collection('users').doc(uid).collection('periods').orderBy('createdAt','desc').onSnapshot(async snap=>{
+    const serverIds = new Set();
+    for(const d of snap.docs){
+      const sid = d.id; serverIds.add(sid); const s = d.data();
+      const rowData = { serverId: sid, startDate: s.startDate||'', endDate: s.endDate||null, flow: s.flow||null, cycle: s.cycle||null, notes: s.notes||'', painMap: s.painMap||[], createdAt: (s.createdAt && s.createdAt.toDate) ? s.createdAt.toDate().toISOString() : new Date().toISOString(), synced:true };
+      let local = await dexie.periods.where('serverId').equals(sid).first();
+      if(local) await dexie.periods.update(local.id, rowData); else await dexie.periods.add(Object.assign({ tmpId:'s'+sid }, rowData));
+    }
+    // remove local rows that reference removed server docs
+    const localRows = await dexie.periods.where('serverId').notEqual(null).toArray();
+    for(const lr of localRows){ if(!serverIds.has(lr.serverId)) await dexie.periods.delete(lr.id); }
+    await loadEntriesFromDB();
+  }, err=>console.error('periods listener err', err));
+
+  if(serverUnsubSleep){ serverUnsubSleep(); serverUnsubSleep=null; }
+  serverUnsubSleep = firestore.collection('users').doc(uid).collection('sleep').orderBy('date','desc').onSnapshot(async snap=>{
+    const serverIds = new Set();
+    for(const d of snap.docs){
+      const sid = d.id; serverIds.add(sid); const s = d.data();
+      const rowData = { serverId: sid, date: s.date||'', duration: s.duration||0, quality: s.quality||0, notes: s.notes||'', createdAt: (s.createdAt && s.createdAt.toDate)? s.createdAt.toDate().toISOString() : new Date().toISOString(), synced:true };
+      let local = await dexie.sleep.where('serverId').equals(sid).first();
+      if(local) await dexie.sleep.update(local.id, rowData); else await dexie.sleep.add(Object.assign({ tmpId:'s'+sid }, rowData));
+    }
+    const localRows = await dexie.sleep.where('serverId').notEqual(null).toArray();
+    for(const lr of localRows){ if(!serverIds.has(lr.serverId)) await dexie.sleep.delete(lr.id); }
+    await computeAndRenderSleepAnalysis();
+  }, err=>console.error('sleep listener err', err));
+}
+
+/* ---------- Export / Import / Clear adjustments ---------- */
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const localPeriods = await dexie.periods.toArray();
+  const localSleep = await dexie.sleep.toArray();
+  const blob = new Blob([JSON.stringify({ periods: localPeriods, sleep: localSleep }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='period-backup.json'; a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', async ()=>{
+  const input=document.createElement('input'); input.type='file'; input.accept='.json,application/json';
+  input.onchange = async (e)=> {
+    const f = e.target.files[0]; if(!f) return;
+    const txt = await f.text();
+    try{
+      const obj = JSON.parse(txt);
+      if(obj.periods){ for(const p of obj.periods){ const exists = await dexie.periods.where('tmpId').equals(p.tmpId).first(); if(!exists) await dexie.periods.add(p); } }
+      if(obj.sleep){ for(const s of obj.sleep){ const exists = await dexie.sleep.where('date').equals(s.date).and(x=>x.duration===s.duration && x.quality===s.quality).first(); if(!exists) await dexie.sleep.add(s); } }
+      await loadEntriesFromDB(); computeAndRenderSleepAnalysis(); showToast('Import successful');
+    }catch(err){ alert('Import failed: ' + err.message); }
+  };
+  input.click();
+});
+document.getElementById('clearLocalBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear local DB and queue? This will not delete server data.')) return;
+  await dexie.periods.clear(); await dexie.sleep.clear(); await loadEntriesFromDB(); computeAndRenderSleepAnalysis(); showToast('Local DB cleared');
+});
+
+/* ---------- Sync Now ---------- */
+document.getElementById('syncNowBtn').addEventListener('click', async ()=> {
+  if(!currentUser) return alert('Sign in to sync');
+  await syncUnsyncedToServer(currentUser.uid);
+  await syncUnsyncedSleepToServer(currentUser.uid);
+  showToast('Sync attempted');
+});
+
+/* ---------- Online/offline ---------- */
+window.addEventListener('online', async ()=>{ statusChip.textContent = currentUser ? 'Online — syncing...' : 'Online — local'; if(currentUser){ await syncUnsyncedToServer(currentUser.uid); await syncUnsyncedSleepToServer(currentUser.uid); }});
+window.addEventListener('offline', ()=>{ statusChip.textContent = 'Offline — local'; });
+
+/* ---------- Recompute button ---------- */
+document.getElementById('computeSleepAnalysis').addEventListener('click', computeAndRenderSleepAnalysis);
+
+/* ---------- Initial UI init ---------- */
+initPainMapUI();
+renderFoodSuggestionsForEntry(null);
+computeAndRenderSleepAnalysis();
+
+  </script>
+  </body>
+</html>
