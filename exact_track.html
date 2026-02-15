@@ -1056,6 +1056,7 @@ async function addEntryToUI(entryPayload){
   const saved = await dexie.periods.get(id);
   entries.unshift(dbRowToEntry(saved));
   renderEntries();
+  computeAndRenderStats();
   renderCalendar(currentYear, currentMonth);
   if(currentUser && navigator.onLine) await syncUnsyncedToServer(currentUser.uid);
   return saved;
@@ -1095,6 +1096,47 @@ function renderEntries(){
     list.appendChild(div);
   });
   document.getElementById('countPill').textContent = entries.length;
+}
+/* ---------- Stats (Average cycle & Next predicted start) ---------- */
+function computeAndRenderStats(){
+  const avgEl = document.getElementById('avgCycle');
+  const nextEl = document.getElementById('nextDue');
+
+  if(!entries || entries.length === 0){
+    avgEl.textContent = '—';
+    nextEl.textContent = '—';
+    return;
+  }
+
+  // Get valid cycle values
+  const cycles = entries
+    .map(e => Number(e.cycle))
+    .filter(c => !isNaN(c) && c > 0);
+
+  if(cycles.length === 0){
+    avgEl.textContent = '—';
+    nextEl.textContent = '—';
+    return;
+  }
+
+  // Calculate average
+  const sum = cycles.reduce((a,b)=>a+b,0);
+  const avgCycle = Math.round(sum / cycles.length);
+
+  avgEl.textContent = avgCycle + " d";
+
+  // Latest entry (newest first)
+  const latest = entries[0];
+
+  if(latest && latest.startDate){
+    const lastStart = new Date(latest.startDate);
+    const nextDate = new Date(lastStart);
+    nextDate.setDate(nextDate.getDate() + avgCycle);
+
+    nextEl.textContent = nextDate.toISOString().slice(0,10);
+  } else {
+    nextEl.textContent = '—';
+  }
 }
 
 /* Calendar */
@@ -1183,6 +1225,7 @@ async function loadEntriesFromDB(){
   initPainMapUI();
   renderFoodSuggestionsForEntry(null);
   computeAndRenderSleepAnalysis();
+  computeAndRenderStats();
 }
 loadEntriesFromDB();
 
@@ -1367,6 +1410,7 @@ document.getElementById('computeSleepAnalysis').addEventListener('click', comput
 initPainMapUI();
 renderFoodSuggestionsForEntry(null);
 computeAndRenderSleepAnalysis();
+computeAndRenderStats();
 
   </script>
   </body>
