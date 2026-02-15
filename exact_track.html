@@ -1126,17 +1126,25 @@ function computeAndRenderStats(){
   avgEl.textContent = avgCycle + " d";
 
   // Latest entry (newest first)
-  const latest = entries[0];
+// 🔥 Find actual latest startDate (not just entries[0])
+const latestEntry = entries.reduce((latest, current) => {
+  if(!latest) return current;
 
-  if(latest && latest.startDate){
-    const lastStart = new Date(latest.startDate);
-    const nextDate = new Date(lastStart);
-    nextDate.setDate(nextDate.getDate() + avgCycle);
+  const latestDate = new Date(latest.startDate);
+  const currentDate = new Date(current.startDate);
 
-    nextEl.textContent = nextDate.toISOString().slice(0,10);
-  } else {
-    nextEl.textContent = '—';
-  }
+  return currentDate > latestDate ? current : latest;
+}, null);
+
+if(latestEntry && latestEntry.startDate){
+  const lastStart = new Date(latestEntry.startDate);
+  const nextDate = new Date(lastStart);
+  nextDate.setDate(nextDate.getDate() + avgCycle);
+
+  nextEl.textContent = nextDate.toISOString().slice(0,10);
+} else {
+  nextEl.textContent = '—';
+}
 }
 
 /* Calendar */
